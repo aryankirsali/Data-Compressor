@@ -1,0 +1,256 @@
+/* General styling for the app */
+.app {
+  font-family: 'Arial', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  padding: 20px;
+  min-height: 100vh; /* Ensures full screen coverage */
+}
+
+.app-header {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 40px;
+  text-align: center; /* Center the heading text */
+  position: relative; /* This allows positioning of the toggle in the corner */
+}
+
+/* Heading and description styles */
+.app-header h1 {
+  font-size: 36px;
+  margin: 0;
+}
+
+.app-header p {
+  font-size: 18px;
+  color: var(--hint-color);
+  margin-top: 10px;
+}
+
+/* Dark mode toggle styles */
+.mode-toggle {
+  position: absolute;
+  top: 20px;
+  right: 20px; /* Position the toggle in the top-right corner */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  vertical-align: middle;
+  font-size: 16px;
+}
+
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  transition: 0.4s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  border-radius: 50%;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  transition: 0.4s;
+}
+
+input:checked + .slider {
+  background-color: #4CAF50;
+}
+
+input:checked + .slider:before {
+  transform: translateX(26px);
+}
+
+/* Upload component styling */
+.upload-component {
+  text-align: center;
+  padding: 30px;
+  border-radius: 15px;
+  background-color: var(--background-color);
+  color: var(--text-color);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  margin: 50px auto;
+}
+
+/* File input styling */
+input[type="file"] {
+  display: block;
+  margin: 20px auto;
+  padding: 12px;
+  border: 2px solid var(--input-border-color);
+  border-radius: 8px;
+  background-color: var(--input-background);
+  font-size: 16px;
+  color: var(--text-color);
+  cursor: pointer;
+  width: 100%;
+  max-width: 400px;
+  transition: border-color 0.3s;
+}
+
+/* Adjust the size of the symbols */
+.symbol-label {
+  font-size: 24px; /* Adjust this size to match your toggle */
+  margin-left: 8px; /* Space between the symbol and toggle */
+  vertical-align: middle; /* Aligns the symbols vertically with the toggle */
+}
+
+/* File list container for showing uploaded files */
+.file-list {
+  margin-top: 30px;
+  padding: 0;
+  list-style-type: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* Individual file item */
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px;
+  margin-bottom: 15px;
+  width: 90%;
+  max-width: 550px;
+  background-color: var(--file-item-background);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+  font-size: 14px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.3s, box-shadow 0.3s;
+}
+
+.file-item:hover {
+  background-color: var(--file-item-hover-background);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* Loading spinner for processing */
+.loader {
+  border: 4px solid var(--loader-background);
+  border-top: 4px solid var(--loader-color);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+
+/* Error message for failed uploads */
+.error {
+  color: var(--error-color);
+  font-size: 13px;
+  font-weight: bold;
+  margin-left: 15px;
+}
+
+/* Download link for compressed file */
+.file-item a {
+  text-decoration: none;
+  color: var(--link-color);
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.3s;
+}
+
+.file-item a:hover {
+  color: var(--link-hover-color);
+}
+
+/* Light mode variables */
+:root {
+  --background-color: #ffffff;
+  --text-color: #333333;
+  --hint-color: #777777;
+  --border-color: #e0e0e0;
+  --input-background: #f8f8f8;
+  --input-border-color: #cccccc;
+  --file-item-background: #fafafa;
+  --file-item-hover-background: #f0f0f0;
+  --loader-background: #e0e0e0;
+  --loader-color: #007bff;
+  --error-color: #e74c3c;
+  --link-color: #007bff;
+  --link-hover-color: #0056b3;
+}
+
+/* Dark mode styling */
+.dark-mode {
+  --background-color: #181818;
+  --text-color: #e0e0e0;
+  --hint-color: #bdbdbd;
+  --border-color: #444444;
+  --input-background: #333333;
+  --input-border-color: #555555;
+  --file-item-background: #222222;
+  --file-item-hover-background: #333333;
+  --loader-background: #444444;
+  --loader-color: #64b5f6;
+  --error-color: #e57373;
+  --link-color: #64b5f6;
+  --link-hover-color: #4e8dff;
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 600px) {
+  .app {
+    padding: 10px;
+  }
+
+  .app-header {
+    margin-bottom: 30px;
+  }
+
+  .file-item {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+
+  .file-item a {
+    margin-top: 10px;
+  }
+
+  input[type="file"] {
+    max-width: 100%;
+  }
+}

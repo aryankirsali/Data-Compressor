@@ -1,35 +1,53 @@
 const zlib = require("zlib");
-const fs = require("fs");
+const fs = require("fs").promises; // Use fs.promises for async operations
 const util = require("util");
-const logger = require("../utils/logger");
+const { logInfo, logError } = require("../utils/logger");
 
 const gzip = util.promisify(zlib.gzip);
 const gunzip = util.promisify(zlib.gunzip);
 
 const compress = async (filePath) => {
   try {
-    const data = fs.readFileSync(filePath);
+    // Check if the file exists
+    await fs.access(filePath); // Throws error if file doesn't exist
+
+    // Read file asynchronously
+    const data = await fs.readFile(filePath);
     const compressed = await gzip(data);
+
+    // Define the compressed file path
     const compressedPath = `${filePath}.gz`;
-    fs.writeFileSync(compressedPath, compressed);
-    logger.info(`File compressed: ${compressedPath}`);
+
+    // Write compressed data asynchronously
+    await fs.writeFile(compressedPath, compressed);
+    logInfo(`File compressed: ${compressedPath}`);
+
     return compressedPath;
   } catch (error) {
-    logger.error("Error during compression:", error);
+    logError("Error during compression:", error.message);
     throw error;
   }
 };
 
 const decompress = async (compressedPath) => {
   try {
-    const data = fs.readFileSync(compressedPath);
+    // Check if the compressed file exists
+    await fs.access(compressedPath); // Throws error if file doesn't exist
+
+    // Read compressed file asynchronously
+    const data = await fs.readFile(compressedPath);
     const decompressed = await gunzip(data);
+
+    // Define the original file path
     const originalPath = compressedPath.replace(".gz", "");
-    fs.writeFileSync(originalPath, decompressed);
-    logger.info(`File decompressed: ${originalPath}`);
+
+    // Write decompressed data asynchronously
+    await fs.writeFile(originalPath, decompressed);
+    logInfo(`File decompressed: ${originalPath}`);
+
     return originalPath;
   } catch (error) {
-    logger.error("Error during decompression:", error);
+    logError("Error during decompression:", error.message);
     throw error;
   }
 };

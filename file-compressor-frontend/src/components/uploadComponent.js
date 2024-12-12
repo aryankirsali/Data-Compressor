@@ -1,84 +1,133 @@
 import React, { useState } from "react";
-import axios from "axios";
+import { uploadFiles as apiUploadFiles } from "../services/api"; // Import the uploadFiles function
+import "../styles/UploadComponent.css";
 
-// UploadComponent handles the file upload and displaying results
 const UploadComponent = () => {
   const [files, setFiles] = useState([]);
-  const [compressedFiles, setCompressedFiles] = useState([]);
-  const [errorMessages, setErrorMessages] = useState([]);
 
-  // Handle file selection and upload
-  const handleFileUpload = async (event) => {
-    const selectedFiles = event.target.files;
-    const formData = new FormData();
+  const handleFileChange = (e) => {
+    const selectedFiles = e.target.files;
+    console.log("Selected files:", selectedFiles); // Log selected files
+    const fileArray = Array.from(selectedFiles).map((file) => ({
+      file: file,
+      size: formatFileSize(file.size),
+      status: "loading", // Set status as "loading" initially
+      url: null,
+      thumbnail: file.type.startsWith("image/")
+        ? URL.createObjectURL(file)
+        : null,
+    }));
+    console.log("Formatted file array:", fileArray); // Log formatted file array
+    setFiles([...fileArray]);
+  };
 
-    for (let file of selectedFiles) {
-      formData.append("files", file);
+  const formatFileSize = (size) => {
+    let formattedSize = "";
+    if (size < 1024) {
+      formattedSize = `${size.toFixed(2)} bytes`;
+    } else if (size < 1048576) {
+      formattedSize = `${(size / 1024).toFixed(2)} KB`;
+    } else {
+      formattedSize = `${(size / 1048576).toFixed(2)} MB`;
     }
+    console.log("Formatted file size:", formattedSize); // Log file size formatting
+    return formattedSize;
+  };
 
+  const uploadFiles = async () => {
+    console.log("Starting upload for files:", files); // Log files to be uploaded
     try {
-      // Sending files to the backend for compression
-      const response = await axios.post("/api/files/upload", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      // Start the upload for each file
+      const uploadedFiles = await apiUploadFiles(
+        files.map((fileObj) => fileObj.file)
+      );
 
-      // Update compressed files state with response data
-      setCompressedFiles(response.data.files); // Assuming this is the list of compressed files
+      uploadedFiles.forEach((fileObj, index) => {
+        const newFiles = [...files];
+        newFiles[index].status = "uploaded"; // Mark file as uploaded
+        newFiles[index].url = fileObj.downloadUrl; // Set the URL from API response
+        newFiles[index].newSize = formatFileSize(fileObj.size); // Set compressed size from API response
+        console.log("Updated file after upload:", newFiles[index]); // Log updated file after upload
+        setFiles(newFiles);
+      });
     } catch (error) {
       console.error("Error uploading files:", error);
-      setErrorMessages(["Error uploading files. Please try again."]);
+      files.forEach((fileObj, index) => {
+        const newFiles = [...files];
+        newFiles[index].status = "error"; // Mark file as error
+        setFiles(newFiles);
+      });
     }
   };
 
-  // Fetch and open the download URL for a compressed file
-  const handleDownload = async (filename) => {
-    try {
-      const response = await axios.get(`/api/files/download/${filename}`);
-      const downloadUrl = response.data.downloadUrl;
-      window.open(downloadUrl, "_blank");
-    } catch (error) {
-      console.error("Error fetching download URL:", error);
-    }
+  const handleRemoveFile = (index) => {
+    console.log(`Removing file at index ${index}`); // Log file removal
+    const updatedFiles = files.filter((_, fileIndex) => fileIndex !== index);
+    setFiles(updatedFiles);
+    console.log("Updated file list after removal:", updatedFiles); // Log updated file list after removal
   };
 
   return (
-    <div>
-      <h2>Upload Files for Compression</h2>
-      <input type="file" multiple onChange={handleFileUpload} />
+    <div className="upload-component">
+      <div className="upload-box">
+        <input
+          type="file"
+          multiple
+          onChange={handleFileChange}
+          accept=".txt,.jpg,.png,.pdf,.zip,.rar,.tar"
+          disabled={files.length >= 5}
+        />
+        <button onClick={uploadFiles} disabled={files.length === 0}>
+          Upload Files
+        </button>
 
-      {/* Display error messages if any */}
-      {errorMessages.length > 0 && (
-        <div>
-          {errorMessages.map((msg, index) => (
-            <p key={index} style={{ color: "red" }}>
-              {msg}
-            </p>
-          ))}
+        <div className="file-list">
+          {files.length > 0 && (
+            <ul>
+              {files.map((fileObj, index) => (
+                <li key={index} className="file-item">
+                  {fileObj.thumbnail && (
+                    <img
+                      src={fileObj.thumbnail}
+                      alt={fileObj.file.name}
+                      className="file-thumbnail"
+                    />
+                  )}
+                  <div className="file-info">
+                    <span>
+                      {fileObj.file.name} ({fileObj.size})
+                    </span>
+                    {fileObj.status === "uploaded" && (
+                      <span className="compressed-size">
+                        <br />
+                        Compressed Size: {fileObj.newSize}
+                      </span>
+                    )}
+                  </div>
+                  <div className="status">
+                    {fileObj.status === "loading" && (
+                      <div className="loader"></div>
+                    )}
+                    {fileObj.status === "uploaded" && (
+                      <a href={fileObj.url} download>
+                        Download Compressed File ({fileObj.newSize})
+                      </a>
+                    )}
+                    {fileObj.status === "error" && (
+                      <span className="error">Failed to upload</span>
+                    )}
+                  </div>
+                  <button
+                    className="remove-file-btn"
+                    onClick={() => handleRemoveFile(index)}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-      )}
-
-      {/* Display uploaded and compressed file details */}
-      <div>
-        {compressedFiles.length > 0 && (
-          <div>
-            <h3>Compressed Files:</h3>
-            {compressedFiles.map((file, index) => (
-              <div key={index}>
-                <p>
-                  <strong>Original File:</strong> {file.originalName} (Size:{" "}
-                  {file.originalSize} bytes)
-                </p>
-                <p>
-                  <strong>Compressed File:</strong> {file.compressedName} (Size:{" "}
-                  {file.compressedSize} bytes)
-                </p>
-                <button onClick={() => handleDownload(file.compressedName)}>
-                  Download Compressed File
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
       </div>
     </div>
   );

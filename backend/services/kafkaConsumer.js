@@ -7,7 +7,7 @@ const kafka = new Kafka({
   brokers: ["localhost:9092"],
 });
 
-const consumer = kafka.consumer({ groupId: "compression-group" });
+const consumer = kafka.consumer({ groupId: "file-processor-group" });
 
 const startKafkaConsumer = async () => {
   await consumer.connect();

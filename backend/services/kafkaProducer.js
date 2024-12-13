@@ -3,7 +3,7 @@ const { logInfo, logError } = require("../utils/logger");
 
 const kafka = new Kafka({
   clientId: "file-compressor",
-  brokers: ["localhost:9092"],
+  brokers: ["localhost:9092"], // Make sure this matches your Kafka broker setup
 });
 
 const producer = kafka.producer();
@@ -15,8 +15,10 @@ const initializeKafkaProducer = async () => {
 
 const sendToKafka = async (message) => {
   try {
+    // Ensure the topic name is correct
+    const topic = "file-compression"; // Example topic
     await producer.send({
-      topic: "file-compression",
+      topic,
       messages: [
         {
           value: JSON.stringify(message),
@@ -26,6 +28,7 @@ const sendToKafka = async (message) => {
     logInfo("Message sent to Kafka", { message });
   } catch (error) {
     logError("Error sending message to Kafka", { error: error.message });
+    throw new Error("Error sending message to Kafka");
   }
 };
 

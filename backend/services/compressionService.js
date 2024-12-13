@@ -22,7 +22,9 @@ const compress = async (filePath) => {
     await fs.writeFile(compressedPath, compressed);
     logInfo(`File compressed: ${compressedPath}`);
 
-    return compressedPath;
+    // Return the compressed file size
+    const compressedSize = (await fs.stat(compressedPath)).size;
+    return { compressedPath, compressedSize }; // Return both path and size
   } catch (error) {
     logError("Error during compression:", error.message);
     throw error;

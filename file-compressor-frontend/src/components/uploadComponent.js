@@ -1,71 +1,131 @@
-import React, { useState } from "react";
-import { uploadFiles as apiUploadFiles } from "../services/api"; // Import the uploadFiles function
+import React, { useState, useEffect } from "react";
+import { uploadFiles as apiUploadFiles } from "../services/api";
+import {
+  FaFilePdf,
+  FaFileAlt,
+  FaFileArchive,
+  FaFile,
+  FaVideo,
+  FaMusic,
+  FaImage,
+} from "react-icons/fa"; // Import React Icons
 import "../styles/UploadComponent.css";
 
 const UploadComponent = () => {
   const [files, setFiles] = useState([]);
+  const [isUploading, setIsUploading] = useState(false); // Track the uploading state
+
+  useEffect(() => {
+    const ws = new WebSocket("ws://localhost:3001");
+
+    ws.onopen = () => {
+      console.log("WebSocket connection established");
+    };
+
+    ws.onmessage = (event) => {
+      const update = JSON.parse(event.data);
+      const { filename, status, url, error, compressedSize } = update;
+
+      setFiles((prevFiles) =>
+        prevFiles.map((file) =>
+          file.file.name === filename
+            ? {
+                ...file,
+                status,
+                url: status === "success" ? url : null,
+                error: status === "failed" ? error : null,
+                compressedSize, // Store compressed size
+              }
+            : file
+        )
+      );
+    };
+
+    ws.onclose = () => {
+      console.log("WebSocket connection closed");
+    };
+
+    return () => {
+      ws.close();
+    };
+  }, []);
 
   const handleFileChange = (e) => {
-    const selectedFiles = e.target.files;
-    console.log("Selected files:", selectedFiles); // Log selected files
-    const fileArray = Array.from(selectedFiles).map((file) => ({
-      file: file,
-      size: formatFileSize(file.size),
-      status: "loading", // Set status as "loading" initially
-      url: null,
-      thumbnail: file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : null,
-    }));
-    console.log("Formatted file array:", fileArray); // Log formatted file array
-    setFiles([...fileArray]);
+    const selectedFiles = Array.from(e.target.files).map((file) => {
+      let thumbnail = null;
+      const fileExtension = file.name.split(".").pop().toLowerCase(); // Get file extension
+
+      // Set file thumbnail based on the extension
+      if (fileExtension === "pdf") {
+        thumbnail = <FaFilePdf size={50} color="#FF6347" />; // PDF files use a PDF icon
+      } else if (fileExtension === "txt") {
+        thumbnail = <FaFileAlt size={50} color="#1E90FF" />; // Text files use a text file icon
+      } else if (fileExtension === "zip") {
+        thumbnail = <FaFileArchive size={50} color="#FFD700" />; // Zip files use a zip file icon
+      } else if (
+        fileExtension === "mp4" ||
+        fileExtension === "mkv" ||
+        fileExtension === "webm"
+      ) {
+        thumbnail = <FaVideo size={50} color="#FF4500" />; // Video files use a video icon
+      } else if (
+        fileExtension === "mp3" ||
+        fileExtension === "wav" ||
+        fileExtension === "flac"
+      ) {
+        thumbnail = <FaMusic size={50} color="#32CD32" />; // Audio files use an audio icon
+      } else if (file.type.startsWith("image/")) {
+        thumbnail = <FaImage size={50} color="#FF6347" />; // Image files use an image icon
+      } else {
+        thumbnail = <FaFile size={50} color="#A9A9A9" />; // Default icon for other file types
+      }
+
+      return {
+        file,
+        originalSize: formatFileSize(file.size), // Store original size
+        status: "loading", // Set status to "loading" initially
+        url: null,
+        compressedSize: null, // Store compressed size later
+        thumbnail, // Set the appropriate thumbnail based on file extension
+      };
+    });
+    setFiles((prevFiles) => [...prevFiles, ...selectedFiles]);
   };
 
   const formatFileSize = (size) => {
-    let formattedSize = "";
-    if (size < 1024) {
-      formattedSize = `${size.toFixed(2)} bytes`;
-    } else if (size < 1048576) {
-      formattedSize = `${(size / 1024).toFixed(2)} KB`;
-    } else {
-      formattedSize = `${(size / 1048576).toFixed(2)} MB`;
-    }
-    console.log("Formatted file size:", formattedSize); // Log file size formatting
-    return formattedSize;
+    if (size < 1024) return `${size} bytes`;
+    if (size < 1048576) return `${(size / 1024).toFixed(2)} KB`;
+    return `${(size / 1048576).toFixed(2)} MB`;
   };
 
   const uploadFiles = async () => {
-    console.log("Starting upload for files:", files); // Log files to be uploaded
-    try {
-      // Start the upload for each file
-      const uploadedFiles = await apiUploadFiles(
-        files.map((fileObj) => fileObj.file)
-      );
+    setIsUploading(true); // Start loader when upload starts
+    const fileList = files.map((fileObj) => fileObj.file);
 
-      uploadedFiles.forEach((fileObj, index) => {
-        const newFiles = [...files];
-        newFiles[index].status = "uploaded"; // Mark file as uploaded
-        newFiles[index].url = fileObj.downloadUrl; // Set the URL from API response
-        newFiles[index].newSize = formatFileSize(fileObj.size); // Set compressed size from API response
-        console.log("Updated file after upload:", newFiles[index]); // Log updated file after upload
-        setFiles(newFiles);
-      });
+    try {
+      await apiUploadFiles(fileList);
     } catch (error) {
       console.error("Error uploading files:", error);
-      files.forEach((fileObj, index) => {
-        const newFiles = [...files];
-        newFiles[index].status = "error"; // Mark file as error
-        setFiles(newFiles);
-      });
+      setFiles((prevFiles) =>
+        prevFiles.map((file) => ({ ...file, status: "error" }))
+      );
     }
   };
 
   const handleRemoveFile = (index) => {
-    console.log(`Removing file at index ${index}`); // Log file removal
     const updatedFiles = files.filter((_, fileIndex) => fileIndex !== index);
     setFiles(updatedFiles);
-    console.log("Updated file list after removal:", updatedFiles); // Log updated file list after removal
   };
+
+  // Check if all files have finished processing (status is not "loading")
+  const allFilesProcessed = files.every((file) => file.status !== "loading");
+
+  // Update `isUploading` once all files are processed
+  useEffect(() => {
+    if (allFilesProcessed) {
+      setIsUploading(false); // Once all files have been processed, stop the upload state
+    }
+  }, [allFilesProcessed]);
 
   return (
     <div className="upload-component">
@@ -74,11 +134,14 @@ const UploadComponent = () => {
           type="file"
           multiple
           onChange={handleFileChange}
-          accept=".txt,.jpg,.png,.pdf,.zip,.rar,.tar"
-          disabled={files.length >= 5}
+          accept=".txt,.jpg,.png,.pdf,.zip,.rar,.tar,.mp4,.mkv,.webm,.mp3,.wav,.flac"
+          disabled={files.length >= 5 || isUploading} // Disable if files are being uploaded
         />
-        <button onClick={uploadFiles} disabled={files.length === 0}>
-          Upload Files
+        <button
+          onClick={uploadFiles}
+          disabled={files.length === 0 || isUploading || allFilesProcessed} // Disable during upload or if all files are processed
+        >
+          {isUploading ? "Uploading..." : "Upload Files"}
         </button>
 
         <div className="file-list">
@@ -86,35 +149,26 @@ const UploadComponent = () => {
             <ul>
               {files.map((fileObj, index) => (
                 <li key={index} className="file-item">
-                  {fileObj.thumbnail && (
-                    <img
-                      src={fileObj.thumbnail}
-                      alt={fileObj.file.name}
-                      className="file-thumbnail"
-                    />
-                  )}
+                  {/* Show thumbnail for the file */}
+                  <div className="file-thumbnail">{fileObj.thumbnail}</div>
+
                   <div className="file-info">
                     <span>
-                      {fileObj.file.name} ({fileObj.size})
+                      {/* Show file name with original size */}
+                      {fileObj.file.name} {`(${fileObj.originalSize})`}
                     </span>
-                    {fileObj.status === "uploaded" && (
-                      <span className="compressed-size">
-                        <br />
-                        Compressed Size: {fileObj.newSize}
-                      </span>
-                    )}
                   </div>
                   <div className="status">
                     {fileObj.status === "loading" && (
-                      <div className="loader"></div>
+                      <div className="loader"></div> // Show only the loader, without "Processing..."
                     )}
-                    {fileObj.status === "uploaded" && (
+                    {fileObj.status === "success" && fileObj.compressedSize && (
                       <a href={fileObj.url} download>
-                        Download Compressed File ({fileObj.newSize})
+                        Download Compressed ({fileObj.compressedSize})
                       </a>
                     )}
-                    {fileObj.status === "error" && (
-                      <span className="error">Failed to upload</span>
+                    {fileObj.status === "failed" && (
+                      <span className="error">Failed: {fileObj.error}</span>
                     )}
                   </div>
                   <button

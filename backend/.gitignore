@@ -21,6 +21,7 @@ Thumbs.db
 # Temporary files
 tmp/
 temp/
+uploads/
 
 # Editor settings and project files
 .vscode/

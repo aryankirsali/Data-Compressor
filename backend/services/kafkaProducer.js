@@ -25,7 +25,7 @@ const sendToKafka = async (message) => {
         },
       ],
     });
-    logInfo("Message sent to Kafka", { message });
+    logInfo("Message sent to Kafka", { message: JSON.stringify(message) });
   } catch (error) {
     logError("Error sending message to Kafka", { error: error.message });
     throw new Error("Error sending message to Kafka");

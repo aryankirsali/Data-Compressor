@@ -1,51 +1,57 @@
-const zlib = require("zlib");
 const fs = require("fs").promises; // Use fs.promises for async operations
-const util = require("util");
+const zstd = require("@mongodb-js/zstd"); // Zstandard library
 const { logInfo, logError } = require("../utils/logger");
 
-const gzip = util.promisify(zlib.gzip);
-const gunzip = util.promisify(zlib.gunzip);
-
+/**
+ * Compress a file using Zstandard for maximum compression ratio
+ */
 const compress = async (filePath) => {
   try {
     // Check if the file exists
-    await fs.access(filePath); // Throws error if file doesn't exist
+    await fs.access(filePath);
 
     // Read file asynchronously
     const data = await fs.readFile(filePath);
-    const compressed = await gzip(data);
+
+    // Compress the file using Zstandard (asynchronous)
+    const compressedData = await zstd.compress(data);
 
     // Define the compressed file path
-    const compressedPath = `${filePath}.gz`;
+    const compressedPath = `${filePath}.zst`;
 
-    // Write compressed data asynchronously
-    await fs.writeFile(compressedPath, compressed);
-    logInfo(`File compressed: ${compressedPath}`);
+    // Write compressed data
+    await fs.writeFile(compressedPath, compressedData);
+    logInfo(`File compressed successfully: ${compressedPath}`);
 
-    // Return the compressed file size
+    // Get the compressed file size
     const compressedSize = (await fs.stat(compressedPath)).size;
-    return { compressedPath, compressedSize }; // Return both path and size
+    return { compressedPath, compressedSize };
   } catch (error) {
     logError("Error during compression:", error.message);
     throw error;
   }
 };
 
+/**
+ * Decompress a Zstandard-compressed file
+ */
 const decompress = async (compressedPath) => {
   try {
     // Check if the compressed file exists
-    await fs.access(compressedPath); // Throws error if file doesn't exist
+    await fs.access(compressedPath);
 
-    // Read compressed file asynchronously
-    const data = await fs.readFile(compressedPath);
-    const decompressed = await gunzip(data);
+    // Read compressed file
+    const compressedData = await fs.readFile(compressedPath);
 
-    // Define the original file path
-    const originalPath = compressedPath.replace(".gz", "");
+    // Decompress the file using Zstandard (asynchronous)
+    const decompressedData = await zstd.decompress(compressedData);
 
-    // Write decompressed data asynchronously
-    await fs.writeFile(originalPath, decompressed);
-    logInfo(`File decompressed: ${originalPath}`);
+    // Define the decompressed file path
+    const originalPath = compressedPath.replace(".zst", "");
+
+    // Write decompressed data
+    await fs.writeFile(originalPath, decompressedData);
+    logInfo(`File decompressed successfully: ${originalPath}`);
 
     return originalPath;
   } catch (error) {
